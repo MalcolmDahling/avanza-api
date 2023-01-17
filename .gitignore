@@ -1,0 +1,4 @@
+node_modules
+output/funds.json
+output/update.json
+input/funds.json
