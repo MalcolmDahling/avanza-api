@@ -7,7 +7,7 @@ const { default: axios } = require('axios');
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3030;
+const PORT = 3031;
 
 async function getFund(fund){
 
