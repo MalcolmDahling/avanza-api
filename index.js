@@ -9,15 +9,19 @@ app.use(express.json());
 
 const PORT = 3031;
 
-async function getFund(fund){
+async function getFund(fundURL){
 
-    let res = await axios.get(`https://www.avanza.se/_api/fund-guide/guide/${fund.id}`);
+    const match = fundURL.match(/\.html\/(\d+)/);
+    const id = match ? match[1] : null;
 
+    if(!id) return;
+
+    let res = await axios.get(`https://www.avanza.se/_api/fund-guide/guide/${id}`);
     console.log('Fetched', res.data.name);
 
     return ({
         name: res.data.name,
-        url: fund.url,
+        url: fundURL,
         date: res.data.navDate,
         oneDay: res.data.developmentOneDay,
         oneMonth: res.data.developmentOneMonth,
@@ -30,16 +34,30 @@ async function getFund(fund){
 async function getAllFunds(){
 
     const fundsRaw = fs.readFileSync('./input/funds.json');
-    const funds = JSON.parse(fundsRaw);
-    console.log(funds);
+    const fundURLs = JSON.parse(fundsRaw);
 
     let date = new Date();
     let data = [];
 
-    for(const fund of funds){
+    for(const fundURL of fundURLs){
 
-        data.push(await getFund(fund));
+        data.push(await getFund(fundURL));
     }
+
+    //sort by name
+    data.sort((a, b) => {
+        const nameA = a.name.toLowerCase();
+        const nameB = b.name.toLowerCase();
+      
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+        
+        return 0;
+    });
     
     fs.writeFile('./output/funds.json', JSON.stringify(data), err => {
 
@@ -77,10 +95,5 @@ app.get('/update', (req, res) => {
     
     res.sendFile('./output/update.json', options);
 });
-
-
-//RAILWAY
-// PORT = process.env.PORT;
-// app.listen(PORT, () => console.log(`Server is running on port ${PORT}.`));
 
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}.`));
