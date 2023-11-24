@@ -9,17 +9,20 @@ app.use(express.json());
 
 const PORT = 3031;
 
-async function getFund(fundURL){
+async function getFund(fundURL) {
+  const match = fundURL.match(/\.html\/(\d+)/);
+  const id = match ? match[1] : null;
 
-    const match = fundURL.match(/\.html\/(\d+)/);
-    const id = match ? match[1] : null;
+  if (!id) return;
 
-    if(!id) return;
+  let res;
 
-    let res = await axios.get(`https://www.avanza.se/_api/fund-guide/guide/${id}`);
+  try {
+    res = await axios.get(`https://www.avanza.se/_api/fund-guide/guide/${id}`);
     console.log('Fetched', res.data.name);
 
-    return ({
+    if (res.data) {
+      return {
         name: res.data.name,
         url: fundURL,
         date: res.data.navDate,
@@ -27,73 +30,79 @@ async function getFund(fundURL){
         oneMonth: res.data.developmentOneMonth,
         threeMonths: res.data.developmentThreeMonths,
         oneYear: res.data.developmentOneYear,
-        thisYear: res.data.developmentThisYear
-    });
+        thisYear: res.data.developmentThisYear,
+      };
+    }
+  } catch (err) {
+    //console.log(err);
+    console.log('error');
+  }
 }
 
-async function getAllFunds(){
+async function getAllFunds() {
+  const fundURLs = JSON.parse(fs.readFileSync('./input/funds.json'));
 
-    const fundsRaw = fs.readFileSync('./input/funds.json');
-    const fundURLs = JSON.parse(fundsRaw);
+  const date = new Date();
+  const data = [];
 
-    let date = new Date();
-    let data = [];
+  for (const fundURL of fundURLs) {
+    data.push(await getFund(fundURL));
+  }
 
-    for(const fundURL of fundURLs){
+  while (data.length < fundURLs.length) {
+    setTimeout(async () => {
+      for (let i = 0; i < fundURLs.length; i++) {
+        if (!data[i]) {
+          data.push(await getFund(fundURLs[i]));
+        }
+      }
+    }, 10000);
+  }
 
-        data.push(await getFund(fundURL));
+  //sort by name
+  data.sort((a, b) => {
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
     }
 
-    //sort by name
-    data.sort((a, b) => {
-        const nameA = a.name.toLowerCase();
-        const nameB = b.name.toLowerCase();
-      
-        if (nameA < nameB) {
-          return -1;
-        }
-        if (nameA > nameB) {
-          return 1;
-        }
-        
-        return 0;
-    });
-    
-    fs.writeFile('./output/funds.json', JSON.stringify(data), err => {
+    return 0;
+  });
 
-        if(err){
-            console.log(err);
-        }
-    });
+  fs.writeFile('./output/funds.json', JSON.stringify(data, null, 2), (err) => {
+    if (err) {
+      console.log(err);
+    }
+  });
 
-    fs.writeFile('./output/update.json', JSON.stringify({"update": date.getTime()}), err => {
-
-        if(err){
-            console.log(err);
-        }
-    })
+  fs.writeFile('./output/update.json', JSON.stringify({ update: date.getTime() }), (err) => {
+    if (err) {
+      console.log(err);
+    }
+  });
 }
-
 
 //update once at startup.
 getAllFunds();
 
 //update every hour.
 setInterval(() => {
-    getAllFunds();
+  getAllFunds();
 }, 3600000);
 
-
-let options = {root: path.join(__dirname)};
+let options = { root: path.join(__dirname) };
 
 app.get('/funds', (req, res) => {
-
-    res.sendFile('./output/funds.json', options);
+  res.sendFile('./output/funds.json', options);
 });
 
 app.get('/update', (req, res) => {
-    
-    res.sendFile('./output/update.json', options);
+  res.sendFile('./output/update.json', options);
 });
 
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}.`));
