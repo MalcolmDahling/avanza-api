@@ -4,8 +4,11 @@ const app = express();
 const fs = require('fs');
 const path = require('path');
 const { default: axios } = require('axios');
+const https = require('https');
 app.use(cors());
 app.use(express.json());
+
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const PORT = 3031;
 
@@ -18,7 +21,7 @@ async function getFund(fundURL) {
   let res;
 
   try {
-    res = await axios.get(`https://www.avanza.se/_api/fund-guide/guide/${id}`);
+    res = await axios.get(`https://www.avanza.se/_api/fund-guide/guide/${id}`, { httpsAgent });
     console.log('Fetched', res.data.name);
 
     if (res.data) {
@@ -35,7 +38,7 @@ async function getFund(fundURL) {
     }
   } catch (err) {
     //console.log(err);
-    console.log('error');
+    console.log(err);
   }
 }
 
