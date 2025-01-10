@@ -1,1 +1,1 @@
-powershell -ExecutionPolicy Bypass -File "C:\Users\Admin\Documents\Github\avanza-api\windows\avanza-api.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\Users\macda\Documents\Github\avanza-api\windows\avanza-api.ps1"
